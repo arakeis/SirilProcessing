@@ -46,6 +46,7 @@ Pour une exécution simple sans ce contrôle supplémentaire :
 | Domaine | Fichiers de tests |
 |---|---|
 | Métadonnées FITS | `test_fits_info.py` |
+| Lecture des masters XISF PixInsight | `test_xisf_reader.py` |
 | Calibration et reprises | `test_lightprocessor_calibration.py`, `test_force_recalc.py` |
 | Sessions, stacking et orchestration mosaïque | `test_session_pipeline.py` |
 | Sélection et profils stellaires | `test_quality_filter.py`, `test_stellar_quality.py` |

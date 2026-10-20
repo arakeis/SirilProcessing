@@ -14,6 +14,7 @@
 | [compute_config.py](../../lib/compute_config.py) | Partager la [politique CPU/GPU](../scripts/postProcess/compute-backend.md) et les surcharges des moteurs |
 | [config.py](../../lib/config.py) | Centraliser les réglages, leurs valeurs par défaut et leur persistance |
 | [fits_info.py](../../lib/fits_info.py) | Donner accès aux caractéristiques des FITS et aux informations nécessaires à leur regroupement et à leur validation |
+| [xisf_reader.py](../../lib/xisf_reader.py) | Lire les masters XISF non compressés de PixInsight (pixels, mots-clés FITS, propriétés scalaires) |
 | [restoration_quality.py](../../lib/restoration_quality.py) | Évaluer les candidats sur des masques indépendants des moteurs et du gradient |
 | [restoration_chains.py](../../lib/restoration_chains.py) | Organiser la comparaison des chaînes complètes, active par défaut |
 | [restoration_summary.py](../../lib/restoration_summary.py) | Présenter les essais, contrôles et motifs de sélection dans les journaux et rapports |
