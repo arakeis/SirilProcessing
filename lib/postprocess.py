@@ -1173,9 +1173,12 @@ class PhotometricColorCalibrator(processor):
 
         # Une calibration antérieure ou un WCS présent ne dispensent pas
         # de refaire la résolution avant l’étalonnage des couleurs.
-        solve = ["platesolve", "-force"]
+        # Siril 1.4.1 refuse les coordonnées placées après « -force » :
+        # elles suivent directement le nom de la commande.
+        solve = ["platesolve"]
         if coordinates is not None:
             solve.append(f"{coordinates[0]:.10f},{coordinates[1]:.10f}")
+        solve.append("-force")
         for name in ("focal", "pixelsize"):
             if option(name) is not None:
                 solve.append(f"-{name}={option(name):.10g}")

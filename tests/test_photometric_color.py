@@ -65,7 +65,7 @@ def test_object_resolution_and_all_options(rgb, tmp_path, monkeypatch, fake_siri
     factory.assert_called_once_with(siril_path='/opt/siril-cli', siril_mode='native')
     script = runner.run_siril_script.call_args.args[0]
     assert script.index('load ') < script.index('platesolve ') < script.index('\npcc ') < script.index('\nsave ')
-    assert 'platesolve -force 270.6000000000,-23.0000000000 -focal=750 -pixelsize=3.76 -noflip -downscale -catalog=gaia' in script
+    assert 'platesolve 270.6000000000,-23.0000000000 -force -focal=750 -pixelsize=3.76 -noflip -downscale -catalog=gaia' in script
     assert '\npcc -catalog=apass -limitmag=14\n' in script
     assert f'load "{rgb}"' in script
     assert result['output_image'] == str(output)
@@ -86,7 +86,7 @@ def test_existing_header_and_explicit_coordinates(rgb, tmp_path, fake_siril, mon
     assert result['spectral_profiles'] == {'oscfilter': 'No filter'}
     result = processor.post_process(rgb, tmp_path / 'coordinates.json',
                                     arguments('--photometry-coordinates', '270.6', '-23'))
-    assert result['platesolve_command'] == 'platesolve -force 270.6000000000,-23.0000000000 -catalog=gaia'
+    assert result['platesolve_command'] == 'platesolve 270.6000000000,-23.0000000000 -force -catalog=gaia'
     resolver.assert_not_called()
 
 
@@ -330,7 +330,7 @@ def test_spcc_configuration_reload_and_cli_override(
     ([], 'platesolve -force -catalog=gaia', True, True),
     (['--photometry-noflip'], 'platesolve -force -noflip -catalog=gaia', True, False),
     (['--photometry-coordinates', '23.45', '30.68'],
-     'platesolve -force 23.4500000000,30.6800000000 -catalog=gaia', True, True),
+     'platesolve 23.4500000000,30.6800000000 -force -catalog=gaia', True, True),
 ])
 def test_default_resolve_and_orientation_overrides(
     rgb: Path, tmp_path: Path, fake_siril: tuple[Mock, Mock],

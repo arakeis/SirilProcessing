@@ -17,7 +17,10 @@ même avec `-catalog=gaia`. L’astrométrie et l’étalonnage des couleurs son
 systématiquement refaits lorsque l’étape est active, même avec un WCS ou une
 calibration antérieure. `--photometry-force` reste accepté pour compatibilité ;
 une ancienne valeur de configuration `photometry_force=false` ne change pas
-ce comportement. `--no-photometry-force` n’est plus accepté.
+ce comportement. `--no-photometry-force` n’est plus accepté. Lorsque des
+coordonnées du centre sont connues, elles suivent directement le nom de la
+commande (`platesolve 270.6,-23 -force …`) : Siril 1.4.1 les refuse si elles
+sont placées après `-force`.
 
 SPCC confronte les flux stellaires mesurés dans l’image aux flux prédits à
 partir des spectres Gaia DR3 et des réponses spectrales de l’instrument. Siril
