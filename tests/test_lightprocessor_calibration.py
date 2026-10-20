@@ -221,9 +221,17 @@ def test_light_process_wrapper_runs_dry_run_pipeline(
     dark_lib.mkdir()
     _write_fits_frame(dark_lib / "master_dark.fit", "dark")
 
+    # Siril n'est jamais lancé en dry-run, mais sa configuration est validée.
+    siril = tmp_path / "siril-cli"
+    siril.write_text("#!/bin/sh\nexit 0\n")
+    siril.chmod(0o755)
     command = [
         str(light_process_sh),
         str(session_dir),
+        "--siril-mode",
+        "native",
+        "--siril-path",
+        str(siril),
         "--dark-lib",
         str(dark_lib),
         "--output",

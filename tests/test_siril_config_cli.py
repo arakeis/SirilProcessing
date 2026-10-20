@@ -92,8 +92,12 @@ def test_save_failure_is_reported(tmp_path):
     blocker.touch()
     image = tmp_path / 'image.fit'
     image.touch()
+    starnet = tmp_path / 'starnet++'
+    starnet.write_text('#!/bin/sh\nexit 0\n')
+    starnet.chmod(0o755)
     result = subprocess.run([str(root / 'bin/postProcess.sh'), str(image),
-                             '--config', str(blocker / 'config.json'), '-S', '--disable-gradient'],
+                             '--config', str(blocker / 'config.json'), '-S', '--disable-gradient',
+                             '--starnet-path', str(starnet)],
                             env={**os.environ, 'VENV_DIR': sys.prefix}, capture_output=True, text=True)
     assert result.returncode == 1
     assert 'Erreur lors de la sauvegarde' in result.stderr
