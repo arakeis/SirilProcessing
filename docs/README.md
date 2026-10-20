@@ -30,6 +30,7 @@ Le [sommaire des scripts](scripts/README.md) donne accès aux rubriques suivante
 | 2.6 | [guideLogAnalyze — journaux de guidage](scripts/guideLogAnalyze/README.md) |
 | 2.7 | [Construction de la documentation HTML/PDF](scripts/generate_docs_html/README.md) |
 | 2.8 | [Utilitaires](scripts/README.md#utilitaires) |
+| 2.9 | [filterAnalyze — identification du filtre d’acquisition](scripts/filterAnalyze/README.md) |
 
 <a id="architecture"></a>
 

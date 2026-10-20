@@ -37,6 +37,8 @@ def spcc_root(tmp_path):
     (root / "osc_sensors").mkdir()
     (root / "osc_filters/broad.json").write_text(json.dumps(
         entry("Broad", "OSC_FILTER", [400, 700], [90, 90], scale=100)))
+    (root / "osc_filters/fraction.json").write_text(json.dumps(
+        entry("Fraction despite range", "OSC_FILTER", [400, 700], [0.5, 0.5], scale=100)))
     (root / "osc_filters/lpf.json").write_text(json.dumps([
         entry("Camera LPF", "OSC_LPF", [4000, 6000], [1, 1], units="angstrom")]))
     (root / "osc_sensors/sensor.json").write_text(json.dumps([
@@ -74,10 +76,12 @@ def test_invalid_samples_are_refused(wavelength, values, message):
 
 
 def test_database_reads_percent_angstrom_and_sensor(spcc_root):
-    """Réponses en pourcentage et longueurs d'onde en angströms sont normalisées."""
+    """Réponses en pourcentage, fractions mal déclarées et angströms sont normalisés."""
     database = SpccDatabase(spcc_root)
-    assert database.osc_filter_names() == ["Broad", "Camera LPF"]
+    assert database.osc_filter_names() == ["Broad", "Fraction despite range", "Camera LPF"]
     assert value_at(database.osc_filter("Broad"), 550) == pytest.approx(0.9)
+    # range = 100 mais valeurs déjà en fraction : lues telles quelles.
+    assert value_at(database.osc_filter("Fraction despite range"), 550) == pytest.approx(0.5)
     lpf = database.osc_filter("Camera LPF")
     assert value_at(lpf, 500) == 1 and value_at(lpf, 650) == 0
     sensor = database.osc_sensor("Sensor")

@@ -180,10 +180,12 @@ l’ancien point d’entrée `generate_docs_html.py`.
 
 <a id="filteranalyze-identification-du-filtre"></a>
 
-## 2.9. filterAnalyze — identification du filtre (en développement)
+## 2.9. filterAnalyze — identification du filtre
 
-[Présentation et état d’avancement](filterAnalyze/README.md) et
-[modèle direct et score de compatibilité](filterAnalyze/MODEL.md).
+Identifie le filtre d’acquisition, ou sa famille, d’une brute de caméra
+couleur à partir des couleurs de ses étoiles : [manuel](filterAnalyze/README.md),
+[options](filterAnalyze/OPTIONS.md), [chaîne de mesure](filterAnalyze/MEASUREMENT.md)
+et [modèle direct et score de compatibilité](filterAnalyze/MODEL.md).
 
 Pour comprendre les responsabilités des modules communs, consulter
 l’[architecture](../architecture/README.md).

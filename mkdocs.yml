@@ -85,7 +85,9 @@ nav:
           - Répertoires pydir: docs/scripts/pydir/README.md
           - Recherche de doublons: docs/scripts/trouve_doublons/README.md
       - 2.9. filterAnalyze:
-          - Présentation: docs/scripts/filterAnalyze/README.md
+          - Manuel: docs/scripts/filterAnalyze/README.md
+          - Options: docs/scripts/filterAnalyze/OPTIONS.md
+          - Chaîne de mesure: docs/scripts/filterAnalyze/MEASUREMENT.md
           - Modèle et score: docs/scripts/filterAnalyze/MODEL.md
   - 3. Architecture:
       - Organisation générale: docs/architecture/README.md

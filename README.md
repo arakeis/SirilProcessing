@@ -38,6 +38,7 @@ ses options et ses traitements détaillés.
 | [Animations d’éclipse solaire](https://dgedgedge.github.io/SirilProcessing/docs/scripts/solarEclipseGif/index.html) | [Markdown](docs/scripts/solarEclipseGif/README.md) |
 | [Visualiseur des analyses KStars / Ekos](https://dgedgedge.github.io/SirilProcessing/docs/scripts/kstarsAnalyze/index.html) | [Markdown](docs/scripts/kstarsAnalyze/README.md) |
 | [Visualiseur des guide logs KStars / Ekos](https://dgedgedge.github.io/SirilProcessing/docs/scripts/guideLogAnalyze/index.html) | [Markdown](docs/scripts/guideLogAnalyze/README.md) |
+| [Identification du filtre d’acquisition](https://dgedgedge.github.io/SirilProcessing/docs/scripts/filterAnalyze/index.html) | [Markdown](docs/scripts/filterAnalyze/README.md) |
 
 ### 1.3. Architecture et maintenance
 

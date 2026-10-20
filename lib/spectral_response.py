@@ -266,9 +266,17 @@ class SpccDatabase:
 
     @staticmethod
     def _curve(entry: dict) -> SpectralCurve:
-        """Convertit une entrée SPCC (réponse en fraction ou en pourcentage)."""
+        """Convertit une entrée SPCC (réponse en fraction ou en pourcentage).
+
+        Quelques entrées déclarent ``range = 100`` avec des valeurs déjà en
+        fraction (maximum ≤ 1, par exemple Vaonis CLS ou SIghtron Quad BP) :
+        elles sont alors lues comme des fractions.
+        """
         values = entry["values"]
+        samples = np.asarray(values["value"], dtype=float)
         scale = float(values.get("range", 1) or 1)
+        if scale > 1 and np.nanmax(samples) <= 1:
+            scale = 1.0
         units = entry["wavelength"].get("units", "nm")
         if units not in WAVELENGTH_UNITS_TO_NM:
             raise ValueError(f"Unités {units} non prises en charge dans {entry['_path']}")
@@ -277,7 +285,7 @@ class SpccDatabase:
             entry["type"],
             np.asarray(entry["wavelength"]["value"], dtype=float)
             * WAVELENGTH_UNITS_TO_NM[units],
-            np.asarray(values["value"], dtype=float) / scale,
+            samples / scale,
             channel=entry.get("channel"),
             quality=entry.get("dataQualityMarker"),
             source=entry.get("dataSource", ""),

@@ -21,6 +21,7 @@
 | [star_photometry.py](../../lib/star_photometry.py) | Mesurer les flux RGB d’étoiles à positions connues par photométrie d’ouverture |
 | [cfa_superpixel.py](../../lib/cfa_superpixel.py) | Dématricer une brute CFA en superpixels RGB, sans interpolation |
 | [gaia_xp.py](../../lib/gaia_xp.py) | Télécharger, avec cache local, les sources et spectres XP de Gaia DR3 |
+| [filter_analysis.py](../../lib/filter_analysis.py) | Enchaîner l’analyse d’une brute et décider du filtre ou de sa famille ([filterAnalyze](../scripts/filterAnalyze/README.md)) |
 | [restoration_quality.py](../../lib/restoration_quality.py) | Évaluer les candidats sur des masques indépendants des moteurs et du gradient |
 | [restoration_chains.py](../../lib/restoration_chains.py) | Organiser la comparaison des chaînes complètes, active par défaut |
 | [restoration_summary.py](../../lib/restoration_summary.py) | Présenter les essais, contrôles et motifs de sélection dans les journaux et rapports |

@@ -1,168 +1,166 @@
-# filterAnalyze — identification du filtre d’acquisition (en développement)
+# filterAnalyze — identification du filtre d’acquisition
 
 [Documentation](../../README.md) › [Scripts](../README.md) › filterAnalyze
 
-L’objectif est d’identifier le filtre astronomique utilisé lors d’une
-acquisition avec un capteur couleur (OSC), à partir des couleurs des étoiles
-d’une image linéaire, sans se fier au champ `FILTER` de l’en-tête. Le résultat
-attendu est un classement des filtres compatibles, ou d’une famille de filtres
-lorsque l’identification n’est pas assez discriminante, dans un rapport JSON.
-
-**État actuel :** aucun script n’est encore disponible. Les bibliothèques
-suivantes sont en place et testées :
-
-| Module | Rôle |
-|---|---|
-| [xisf_reader.py](../../../lib/xisf_reader.py) | Lire les masters PixInsight (`.xisf`) non compressés |
-| [spectral_response.py](../../../lib/spectral_response.py) | Charger les courbes de la base SPCC de Siril, synthétiser les filtres à bande étroite, modéliser l’atmosphère |
-| [filter_model.py](../../../lib/filter_model.py) | Simuler les flux RGB des étoiles et calculer un score de compatibilité par filtre |
-| [plate_solving.py](../../../lib/plate_solving.py) | Résoudre l’astrométrie d’une image avec Siril, sur Gaia DR3 |
-| [star_photometry.py](../../../lib/star_photometry.py) | Mesurer les flux R, G, B des étoiles aux positions du catalogue |
-| [cfa_superpixel.py](../../../lib/cfa_superpixel.py) | Dématricer une brute CFA en superpixels RGB selon `BAYERPAT` et `ROWORDER` |
-| [gaia_xp.py](../../../lib/gaia_xp.py) | Télécharger et garder en cache les sources et spectres XP de Gaia DR3 |
-
 <a id="1-chaine-prevue"></a>
 
-## 1. Chaîne prévue
+## 1. Objectif
 
-1. Lecture de l’image linéaire (FITS ou XISF) et de ses métadonnées.
-2. Dématriçage superpixel d’une brute, sans calibration, et mesure des flux R,
-   G, B des étoiles.
-3. Astrométrie, puis interrogation de Gaia DR3 (spectres XP) avec cache local.
-4. Simulation des flux de chaque étoile pour chaque filtre candidat.
-5. Score par filtre, décision (filtre ou famille) et cohérence avec `FILTER`.
+`filterAnalyze` identifie le filtre astronomique utilisé pour une brute de
+caméra couleur (OSC), à partir des couleurs de ses étoiles, sans se fier au
+mot-clé `FILTER`. Pour chaque brute, il compare les couleurs mesurées aux
+couleurs attendues avec chaque filtre de la base SPCC de Siril, puis écrit un
+rapport JSON : classement des filtres, famille retenue (bi-bande, antipollution
+large bande, UV/IR seul, sans filtre) et cohérence avec `FILTER`.
 
-Les étapes 4 et 5 (modèle et score) sont décrites dans
-[Modèle direct et score](MODEL.md). L’astrométrie (section 3), la mesure des
-flux (section 4), le dématriçage des brutes (section 5) et l’accès aux
-spectres Gaia (section 6) existent ; reste l’assemblage en script.
+La chaîne, détaillée dans [Chaîne de mesure](MEASUREMENT.md) et
+[Modèle direct et score](MODEL.md) :
+
+1. dématriçage superpixel de la brute, sans calibration ;
+2. astrométrie avec Siril `platesolve` sur Gaia DR3 ;
+3. sources Gaia du champ et photométrie RGB aux positions Gaia ;
+4. choix d’au plus 100 étoiles réparties en couleur, téléchargement de leurs
+   spectres Gaia XP (mis en cache) ;
+5. simulation des flux de chaque étoile pour chaque filtre candidat, score de
+   compatibilité, puis décision par famille et par filtre.
 
 <a id="2-prerequis"></a>
 
 ## 2. Prérequis
 
-- La base SPCC de Siril, téléchargée par Siril dans ses préférences SPCC.
-  Emplacement vérifié sous macOS :
+- Les dépendances de `requirements.txt` (NumPy, SciPy, Astropy).
+- Siril 1.4 ou plus récent, et sa base SPCC, téléchargée par Siril dans ses
+  préférences SPCC. Emplacement vérifié sous macOS :
   `~/Library/Application Support/org.siril.Siril/siril-spcc-database`. Sous
   Linux, le module cherche `$XDG_DATA_HOME/siril/siril-spcc-database` puis le
   dossier Flatpak de Siril ; ces deux emplacements n’ont pas été vérifiés.
-- Les dépendances de `requirements.txt` (NumPy, Astropy).
-- Siril 1.4 ou plus récent pour l’astrométrie, et le réseau pour le catalogue
-  Gaia distant et l’archive Gaia de l’ESA.
+- Un accès réseau : catalogue Gaia de Siril pour l’astrométrie, archive Gaia
+  de l’ESA pour les sources et les spectres. Une fois le cache rempli, une
+  nouvelle analyse du même champ ne télécharge plus de spectres.
 
-<a id="3-astrometrie"></a>
+<a id="3-lancement"></a>
 
-## 3. Astrométrie
+## 3. Lancement
 
-`plate_solve(data, header, work_dir)` écrit l’image dans `work_dir`, lance
-`platesolve -force -noflip -catalog=gaia` avec Siril et retourne l’en-tête
-résolu (WCS avec distorsions SIP). Le centre (`RA`/`DEC` en degrés, sinon
-`OBJCTRA`/`OBJCTDEC`), la focale (`FOCALLEN`) et la taille des pixels
-(`XPIXSZ`) sont lus dans l’en-tête lorsqu’ils existent.
+```bash
+bin/filterAnalyze.sh IC_5070_Light_017.fits
+```
 
-- `-noflip` garde les pixels tels quels : le WCS s’applique directement au
-  tableau fourni, y compris pour une image rangée `TOP-DOWN`.
-- Les coordonnées du centre précèdent `-force`, que Siril 1.4.1 refuse sinon.
-- Le catalogue `gaia` distant exige le réseau. Après une résolution, Siril
-  enregistre la focale et la taille de pixel trouvées dans ses préférences.
+```bash
+bin/filterAnalyze.sh lights/*.fits --output-dir rapports --filter-max-stars 50
+```
 
-Vérifié avec Siril 1.4.1 sous macOS sur des images ASI294MC Pro à 800 mm de
-focale (1,19″/px) : masters RGB L-eXtreme et L-Pro lus depuis XISF, et une
-brute CFA non dématricée. Le centre de la brute concorde avec celui du master
-à 1″ près, et les étoiles Gaia brillantes projetées par le WCS tombent sur
-les étoiles de l’image.
+Le lanceur `bin/filterAnalyze.sh` prépare l’environnement Python du projet
+(`.venv`, mis à jour depuis `requirements.txt`) puis exécute
+`bin/filterAnalyze.py` avec les mêmes arguments. Chaque brute est analysée
+indépendamment ; une ligne de synthèse est affichée par brute :
 
-<a id="4-photometrie"></a>
+```text
+IC_5070_Light_017.fits: family — famille light_pollution — 100 étoiles — Optolong L-QEF 1.38, ...
+```
 
-## 4. Photométrie des étoiles
+Les options et leurs valeurs par défaut sont décrites dans [Options](OPTIONS.md).
 
-`measure_rgb(data, positions, aperture_radius=…)` mesure une image RGB
-linéaire aux positions d’un catalogue projeté par le WCS. Le centroïde est
-affiné sur la somme des canaux, puis la même ouverture circulaire mesure R, G
-et B ; le fond est la médiane d’un anneau (par défaut de 1,5 à 2,5 fois le
-rayon). L’incertitude ne contient que le bruit du fond, le gain d’un master
-empilé étant inconnu.
+<a id="4-entrees"></a>
 
-Une étoile est rejetée et son motif est conservé : `edge` (trop près du
-bord), `crowded` (autre astre fourni dans l’anneau), `saturated` (par défaut
-90 % du maximum du canal), `offset` (centroïde à plus d’un demi-rayon de la
-position prédite) ou `faint` (rapport signal sur bruit inférieur à 30 dans un
-canal).
+## 4. Entrées
 
-`select_colour_spread(colour, snr, max_stars)` limite ensuite le nombre
-d’étoiles dont il faut télécharger le spectre. La gamme des couleurs Gaia
-`BP − RP` est découpée en dix tranches de même largeur, parcourues tour à tour
-en prenant chaque fois l’étoile restante au meilleur rapport signal sur bruit.
-Le score dépend de l’écart entre étoiles bleues et rouges plus que de leur
-nombre : les rares étoiles des extrémités sont donc gardées en priorité.
+Une ou plusieurs brutes FITS d’un capteur couleur, **non dématricées** et
+**non calibrées** : `BAYERPAT` est obligatoire, `XBAYROFF`, `YBAYROFF` et
+`ROWORDER` sont lus s’ils existent. Les mots-clés `RA`/`DEC` (ou
+`OBJCTRA`/`OBJCTDEC`), `FOCALLEN` et `XPIXSZ` guident l’astrométrie ; `AIRMASS`
+règle l’extinction atmosphérique (sans lui, l’atmosphère est ignorée) ;
+`INSTRUME` permet de reconnaître le capteur.
 
-Essai sur les masters RGB, positions Gaia DR3 (G < 15,5) et voisins jusqu’à
-G = 17, avec la couleur `B − R` mesurée comparée à `BP − RP` :
+Les masters déjà dématricés ne sont pas acceptés : un dématriçage erroné passe
+inaperçu et fausse les couleurs (voir [Chaîne de mesure](MEASUREMENT.md#2-photometrie)).
 
-| Image | Étoiles retenues | Décalage médian | Pente | Corrélation |
-|---|---|---|---|---|
-| Master L-eXtreme, rayon 5 px | 1856 | 0,13 px | 0,55 | 0,95 |
-| Master L-Pro, rayon 5 px | 633 | 0,20 px | 0,06 | 0,39 |
-| Brute L-Pro, superpixel RGGB, rayon 3 px | 293 | — | 0,72 | 0,96 |
+<a id="5-sorties"></a>
 
-Le master L-Pro ne présente presque aucune dépendance à la couleur, alors que
-sa brute dématricée selon son `BAYERPAT` (RGGB) se comporte normalement. Le
-master se comporte comme un dématriçage GRBG ou GBRG : un retournement vertical
-d’une image de hauteur paire transforme RGGB en GBRG. Un master déjà dématricé
-ne peut donc pas être utilisé sans contrôle ; la chaîne partira des brutes.
+## 5. Sorties
 
-<a id="5-dematricage"></a>
+Pour chaque brute, `<brute>_filterAnalyze.json` et le dossier
+`<brute>_filterAnalyze_work/` (fichiers de l’astrométrie Siril, réinitialisé à
+chaque analyse). Le rapport contient :
 
-## 5. Dématriçage des brutes
+| Clé | Contenu |
+|---|---|
+| `input`, `header` | Brute analysée et mots-clés utiles (`FILTER`, `INSTRUME`, `EXPTIME`…) |
+| `sensor`, `airmass` | Capteur SPCC utilisé et masse d’air retenue |
+| `astrometry` | Centre en degrés et échelle en secondes d’arc par superpixel |
+| `stars` | Sources du champ, étoiles mesurées, motifs de rejet et étoiles utilisées |
+| `scores` | Tous les candidats, triés du plus compatible au moins compatible, avec leur famille |
+| `decision` | Statut, famille, filtre, écarts, trois premiers et filtres ambigus |
+| `header_consistency` | Valeur `FILTER`, candidats correspondants et cohérence avec la famille retenue |
 
-`superpixel_rgb(data, header)` transforme chaque bloc 2×2 de la matrice de
-Bayer en un pixel RGB : rouge, moyenne des deux verts, bleu. Les trois canaux
-d’une étoile proviennent des mêmes photosites, sans interpolation. Le motif
-`BAYERPAT`, décalé par `XBAYROFF`/`YBAYROFF`, se lit du haut vers le bas ; pour
-une image `BOTTOM-UP` de hauteur paire, la parité des lignes est inversée.
-Sans `ROWORDER`, l’image est supposée `TOP-DOWN`, comme chez Ekos et NINA.
-L’en-tête retourné double la taille des pixels et le binning, et retire la
-matrice et le WCS, qui ne s’appliquent plus.
+Un score réduit proche de 1 signifie des écarts compatibles avec le bruit et
+l’incertitude du modèle ; plus il est grand, moins le filtre est compatible.
 
-**Pas de calibration.** Le fond pris dans l’anneau de chaque étoile retire
-l’offset, le courant d’obscurité et le gradient d’amp glow. Le vignetage et la
-couleur globale du flat sont communs à l’échantillon et s’annulent dans les
-couleurs ou dans le décalage de balance des blancs du score. Seule une
-variation de couleur dans le champ (bandes d’un filtre interférentiel décalées
-au bord à f/4, vignetage chromatique) échappe à ces corrections ; son effet
-reste à mesurer.
+<a id="6-decision"></a>
 
-Essai sur chaque brute, astrométrie de l’image superpixel, rayon 3 superpixels,
-étoiles Gaia G < 15 et voisins jusqu’à G = 17 :
+## 6. Décision
 
-| Filtre | Brutes | Étoiles retenues par brute | Décalage médian | Pente B − R | Pente G − R | Corrélations |
+Chaque candidat appartient à une famille : `narrowband` (bi-, tri- ou
+quadri-bande), `light_pollution` (antipollution large bande), `uv_ir_cut`
+(coupure UV/IR seule, y compris les filtres internes d’APN) ou `none` (sans
+filtre). La table complète est `FILTER_FAMILIES` dans
+`lib/filter_analysis.py`.
+
+- `undetermined` : la meilleure famille ne devance pas la suivante d’au moins
+  `--filter-family-margin` (0,5) ;
+- `family` : la famille est retenue, mais le meilleur filtre ne devance pas le
+  suivant de sa famille d’au moins `--filter-margin` (0,3). `ambiguous_with`
+  liste les filtres trop proches ;
+- `filter` : famille et filtre sont retenus.
+
+Les écarts sont absolus : deux scores proches de zéro décrivent deux
+ajustements parfaits, même si leur rapport est grand.
+
+La cohérence avec `FILTER` cherche les candidats dont le nom contient la
+valeur de l’en-tête, sans casse ni ponctuation (`L Extreme` → `Optolong
+L-eXtreme`). Une valeur trop courte (`L`) ou sans correspondance donne
+`consistent: null` ; sinon `consistent` indique si la famille retenue est
+celle d’un des candidats correspondants.
+
+<a id="7-erreurs"></a>
+
+## 7. Erreurs possibles
+
+| Message | Cause et remède |
+|---|---|
+| `Motif de Bayer absent ou inconnu` | Image déjà dématricée ou sans `BAYERPAT` |
+| `Capteur inconnu pour INSTRUME=…` | Caméra non reconnue : indiquer `--filter-sensor` |
+| `Échec de Siril : platesolve …` | Astrométrie impossible ; journal dans `<brute>_filterAnalyze_work/` |
+| `Archive Gaia : …` | Archive de l’ESA indisponible ou limite atteinte ; relancer plus tard, le cache conserve ce qui est déjà téléchargé |
+| `N étoiles exploitables, M requises` | Trop peu d’étoiles isolées, non saturées et assez lumineuses ; augmenter `--filter-max-g` ou baisser `--filter-min-snr` |
+
+Le script retourne 0 si toutes les brutes ont été analysées, 1 si au moins une
+a échoué (les autres sont tout de même traitées) et 130 après une interruption.
+
+<a id="8-limites"></a>
+
+## 8. Validation et limites
+
+Vérifié le 20 octobre 2026 sous macOS avec Siril 1.4.1, sur 9 brutes d’une
+ASI294MC Pro à 800 mm (options par défaut, 100 étoiles au plus) :
+
+| Brutes | Filtre réel | Famille retenue | Écart avec la famille suivante | Écart dans la famille | Rang du filtre réel | `FILTER` |
 |---|---|---|---|---|---|---|
-| L-eXtreme, 300 s | 5 | 76 à 129 | < 0,1 superpixel | 0,77 à 0,83 | 0,74 à 0,78 | 0,96 à 0,99 |
-| L-Pro, 120 s | 4 | 167 à 286 | ≈ 0,1 superpixel | 0,69 à 0,78 | 0,44 à 0,48 | 0,94 à 0,96 |
+| 4 × IC 5070, 120 s | Optolong L-Pro | `light_pollution` (4/4) | 2,0 à 4,1 | 0,08 à 0,21 | 3 à 5 | `L` : non comparable |
+| 5 × NGC 6960, 300 s | Optolong L-eXtreme | `narrowband` (5/5) | 1,5 à 2,1 | 0,00 à 0,17 | 1 à 3 | `L Extreme` : cohérent |
 
-Les pentes sont stables d’une brute à l’autre, et la pente G − R sépare déjà
-nettement les deux filtres. Le master L-Pro dématricé à tort (section 4) a été
-retiré des données d’essai.
+La famille est retenue sur les 9 brutes, avec une avance bien supérieure au
+seuil de 0,5. Dans la famille, le premier filtre ne devance jamais le suivant
+de plus de 0,21 : le statut reste `family`, et le seuil de 0,3 évite d’annoncer
+à tort Optolong L-QEF ou Askar C1, souvent classés devant le vrai filtre. Avec
+le cache rempli, les 9 analyses prennent 11 s ; un champ neuf demande environ
+2 minutes de téléchargement pour 100 spectres.
 
-<a id="6-spectres-gaia"></a>
-
-## 6. Sources et spectres Gaia XP
-
-`query_field_sources(ra, dec, rayon, max_g, cache)` interroge le service TAP de
-l’archive Gaia de l’ESA en mode asynchrone, sur la table allégée
-`gaiadr3.gaia_source_lite` : position, magnitude G, `BP − RP` et
-`has_xp_sampled`. `fetch_xp_spectra(identifiants, cache)` télécharge les
-spectres XP échantillonnés (343 points de 336 à 1020 nm, en W·m⁻²·nm⁻¹) et
-`xp_to_grid` les ramène sur la grille du modèle. Tout est gardé dans le
-dossier de cache : une table par requête, un fichier par spectre, y compris
-pour une source sans spectre.
-
-Limites constatées en accès anonyme, le 20 octobre 2026 :
-
-- une requête TAP, même asynchrone, est interrompue après 60 s. Sur la table
-  complète `gaia_source`, un champ de 0,84° jusqu’à G = 17 dépasse parfois
-  cette durée ; la table allégée répond en quelques secondes ;
-- le service DataLink accepte au plus 50 identifiants par requête ; un lot de
-  50 spectres a pris environ 70 s ;
-- les services de l’ESA (et VizieR) ont été indisponibles un moment : les
-  erreurs 5xx et les délais dépassés sont réessayés trois fois avant d’échouer.
+- Les spectres Gaia XP ont une résolution faible : une bande de 7 nm n’y est
+  pas résolue, et les raies Hα et SII ne peuvent pas être distinguées.
+- Les filtres d’une même famille donnent des couleurs voisines : le filtre
+  exact n’est retenu que s’il se détache nettement.
+- La table des familles et le capteur reconnu par `INSTRUME` (ASI294MC) ne
+  couvrent que la base SPCC actuelle et le matériel testé.
+- Les filtres à bande étroite absents de la base SPCC ne sont pas candidats,
+  hormis l’Optolong L-eXtreme synthétisé (voir [Modèle](MODEL.md)).
