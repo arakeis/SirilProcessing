@@ -84,6 +84,9 @@ nav:
           - Intégration dans Siril: docs/scripts/pyecho/GUIDE.md
           - Répertoires pydir: docs/scripts/pydir/README.md
           - Recherche de doublons: docs/scripts/trouve_doublons/README.md
+      - 2.9. filterAnalyze:
+          - Présentation: docs/scripts/filterAnalyze/README.md
+          - Modèle et score: docs/scripts/filterAnalyze/MODEL.md
   - 3. Architecture:
       - Organisation générale: docs/architecture/README.md
       - Catalogue des bibliothèques: docs/architecture/LIBRARIES.md

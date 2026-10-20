@@ -178,5 +178,12 @@ l’ancien point d’entrée `generate_docs_html.py`.
 | `pydir.py` | [Affichage d’un répertoire](pydir/README.md) |
 | `trouve_doublons.py` | [Comparaison de contenu et script de nettoyage](trouve_doublons/README.md) |
 
+<a id="filteranalyze-identification-du-filtre"></a>
+
+## 2.9. filterAnalyze — identification du filtre (en développement)
+
+[Présentation et état d’avancement](filterAnalyze/README.md) et
+[modèle direct et score de compatibilité](filterAnalyze/MODEL.md).
+
 Pour comprendre les responsabilités des modules communs, consulter
 l’[architecture](../architecture/README.md).
