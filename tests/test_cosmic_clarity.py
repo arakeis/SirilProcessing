@@ -214,7 +214,7 @@ def test_processor_quality_and_source_preservation(
         result = cls().post_process(source, report, arguments())
     treatment = 'Déconvolution' if operation == 'sharpen' else 'Débruitage'
     assert f'{treatment} — début de l’évaluation Cosmic Clarity' in caplog.text
-    assert f'{treatment} — début de l’évaluation Siril' in caplog.text
+    assert f'{treatment} — Évaluation du moteur Siril' in caplog.text
     assert f'{treatment} — évaluation Cosmic Clarity : statut=' in caplog.text
     assert f'{treatment} — évaluation Siril : statut=' in caplog.text
     if status == 'accepted':
