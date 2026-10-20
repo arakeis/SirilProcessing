@@ -55,6 +55,10 @@ voile nuageux). Pour chaque étoile `s` et chaque couleur `k ∈ {R/G, B/G}` :
   estimé par une moyenne robuste de Huber (seuil 3σ) ;
 - le score réduit vaut `2 · Σ ρ_Huber(résidu/σ) / (2N − 2)`.
 
+`score_filter` calcule ces couleurs à partir des flux ; `score_colours` part
+directement des couleurs et de leurs écarts-types, par exemple moyennés sur
+plusieurs poses (voir [Combinaison d’une série](README.md#6-decision)).
+
 Avec le bon filtre, le score est proche de 1 lorsque les incertitudes sont
 justes (inférieur à 1 si elles sont surestimées). Avec un mauvais filtre, les
 résidus dérivent avec la couleur des étoiles et le score augmente. La perte de
@@ -84,4 +88,4 @@ essai sur 150 corps noirs de 3500 à 12 000 K, capteur Sony IMX294, masse d’ai
   étroite. La reconstruction à partir de Gaia XP, de résolution faible, ne
   résout pas une bande de 7 nm.
 
-Aucune validation sur image réelle n’a encore été faite.
+Les résultats sur images réelles sont dans le [manuel](README.md#8-limites).

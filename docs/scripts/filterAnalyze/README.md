@@ -50,10 +50,15 @@ bin/filterAnalyze.sh IC_5070_Light_017.fits
 bin/filterAnalyze.sh lights/*.fits --output-dir rapports --filter-max-stars 50
 ```
 
+```bash
+bin/filterAnalyze.sh lights/*.fits --combine
+```
+
 Le lanceur `bin/filterAnalyze.sh` prépare l’environnement Python du projet
 (`.venv`, mis à jour depuis `requirements.txt`) puis exécute
 `bin/filterAnalyze.py` avec les mêmes arguments. Chaque brute est analysée
-indépendamment ; une ligne de synthèse est affichée par brute :
+indépendamment, sauf avec `--combine` qui analyse ensemble les brutes d’une
+même série ; une ligne de synthèse est affichée par brute ou par série :
 
 ```text
 IC_5070_Light_017.fits: family — famille light_pollution — 100 étoiles — Optolong L-QEF 1.38, ...
@@ -93,6 +98,13 @@ chaque analyse). Le rapport contient :
 | `decision` | Statut, famille, filtre, écarts, trois premiers et filtres ambigus |
 | `header_consistency` | Valeur `FILTER`, candidats correspondants et cohérence avec la famille retenue |
 
+Avec `--combine`, chaque série produit `<première brute>_series_filterAnalyze.json`
+et `<première brute>_series_filterAnalyze_work/<brute>/` pour l’astrométrie de
+chaque brute. Le rapport de série remplace `input` et `astrometry` par
+`inputs` et `frames` (en-tête, astrométrie et étoiles de chaque brute) ;
+`airmass` est la moyenne des brutes et `stars` donne les étoiles combinées,
+utilisées et le nombre moyen de brutes par étoile utilisée.
+
 Un score réduit proche de 1 signifie des écarts compatibles avec le bruit et
 l’incertitude du modèle ; plus il est grand, moins le filtre est compatible.
 
@@ -115,6 +127,17 @@ filtre). La table complète est `FILTER_FAMILIES` dans
 
 Les écarts sont absolus : deux scores proches de zéro décrivent deux
 ajustements parfaits, même si leur rapport est grand.
+
+**Combinaison d’une série** (`--combine`). Les brutes sont regroupées par
+`OBJECT`, `FILTER`, `EXPTIME` et `INSTRUME`. Chaque brute est dématricée,
+résolue et mesurée ; les couleurs `ln(R/G)` et `ln(B/G)` de chaque étoile Gaia
+sont ensuite moyennées sur les brutes où elle est valide, avec un poids
+inverse à la variance. Chaque étoile compte une seule fois dans le score, avec
+une couleur plus précise, et une variation de transparence entre brutes, qui
+touche les trois canaux à l’identique, ne la modifie pas. Le choix des étoiles,
+les spectres et la simulation, avec la masse d’air moyenne, sont faits une
+fois pour la série. La combinaison réduit le bruit de mesure, pas les erreurs
+systématiques du modèle (courbes de filtres, spectres XP).
 
 La cohérence avec `FILTER` cherche les candidats dont le nom contient la
 valeur de l’en-tête, sans casse ni ponctuation (`L Extreme` → `Optolong
@@ -155,6 +178,17 @@ de plus de 0,21 : le statut reste `family`, et le seuil de 0,3 évite d’annonc
 à tort Optolong L-QEF ou Askar C1, souvent classés devant le vrai filtre. Avec
 le cache rempli, les 9 analyses prennent 11 s ; un champ neuf demande environ
 2 minutes de téléchargement pour 100 spectres.
+
+Avec `--combine`, sur les mêmes brutes (2 séries, 10 s avec le cache) :
+
+| Série | Famille retenue | Écart avec la famille suivante | Écart dans la famille | Rang du filtre réel | Brutes par étoile |
+|---|---|---|---|---|---|
+| 4 × IC 5070, Optolong L-Pro | `light_pollution` | 4,7 | 0,14 | 4 | 3,1 |
+| 5 × NGC 6960, Optolong L-eXtreme | `narrowband` | 2,8 | 0,21 | 3 | 4,3 |
+
+La combinaison renforce nettement la famille, mais ne départage pas les
+filtres d’une même famille : Optolong L-QEF et Askar C1 restent devant les
+vrais filtres. L’écart restant vient donc du modèle, pas du bruit.
 
 - Les spectres Gaia XP ont une résolution faible : une bande de 7 nm n’y est
   pas résolue, et les raies Hα et SII ne peuvent pas être distinguées.

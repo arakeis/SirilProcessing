@@ -12,6 +12,7 @@ configuration JSON sauvegardée avec `-S`, puis valeurs par défaut ci-dessous.
 |---|---|---|
 | `input_files` (positionnel) | — | Une ou plusieurs brutes FITS CFA non calibrées |
 | `-o`, `--output-dir` | dossier de chaque brute | Dossier des rapports `<brute>_filterAnalyze.json` |
+| `-c`, `--combine` | désactivé | Analyser ensemble les brutes d’une même série (mêmes `OBJECT`, `FILTER`, `EXPTIME` et `INSTRUME`) ; un rapport `<première brute>_series_filterAnalyze.json` par série |
 | `-l`, `--log-level` | `INFO` | Niveau de journalisation |
 | `-s`, `--siril-path` | défaut Siril du projet ([Installation](../../INSTALLATION.md)) | Exécutable Siril (modes `native` et `appimage`) |
 | `-m`, `--siril-mode` | défaut Siril du projet | `native`, `flatpak` ou `appimage` |
@@ -22,7 +23,7 @@ configuration JSON sauvegardée avec `-S`, puis valeurs par défaut ci-dessous.
 
 | Option | Défaut | Rôle |
 |---|---|---|
-| `--filter-max-stars` | 100 | Nombre maximal d’étoiles dont le spectre Gaia XP est utilisé, réparties en couleur |
+| `--filter-max-stars` | 100 | Nombre maximal d’étoiles dont le spectre Gaia XP est utilisé, réparties en couleur (par série avec `--combine`) |
 | `--filter-min-stars` | 20 | Nombre minimal d’étoiles exploitables ; en dessous, la brute est refusée |
 | `--filter-max-g` | 15,0 | Magnitude G limite des étoiles mesurées |
 | `--filter-neighbor-g` | 17,0 | Magnitude G limite des voisins pris en compte pour rejeter les étoiles serrées |

@@ -1,7 +1,11 @@
 """Analyse du filtre : décision, en-tête et chaîne complète sur une brute synthétique."""
 
 import argparse
+import importlib.util
 import json
+import shutil
+import sys
+from pathlib import Path
 from unittest.mock import Mock
 
 import numpy as np
@@ -13,6 +17,8 @@ from astropy.wcs import WCS
 from lib import filter_analysis
 from lib.filter_analysis import (
     FilterAnalyzer,
+    FrameMeasurement,
+    combine_frames,
     decide,
     filter_family,
     header_filter_candidates,
@@ -22,6 +28,11 @@ from lib.filter_model import blackbody_spectrum, simulate_rgb
 from lib.gaia_xp import XP_WAVELENGTH_NM
 from lib.spectral_response import WAVELENGTH_GRID_NM, SpccDatabase
 from tests.test_spectral_response import entry
+
+spec = importlib.util.spec_from_file_location("filter_analyze_cli", Path(__file__).parents[1] / "bin/filterAnalyze.py")
+cli = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = cli
+spec.loader.exec_module(cli)
 
 SUPERPIXELS = (160, 240)
 TEMPERATURES = np.linspace(3500, 12000, 48)
@@ -183,3 +194,70 @@ def test_too_few_stars_or_unknown_sensor_are_refused(tmp_path, database, raw_lig
     FilterAnalyzer.add_arguments(parser)
     with pytest.raises(ValueError, match="--filter-sensor"):
         analyzer.post_process(path, tmp_path / "r.json", parser.parse_args([]))
+
+
+def frame(source_id, colours, sigma, valid=None):
+    """Mesure minimale d'une pose pour tester la combinaison."""
+    colours = np.asarray(colours, float)
+    return FrameMeasurement(
+        input_path=Path("x.fits"), header=fits.Header(), sensor_name="S", airmass=None, centre_deg=(0, 0),
+        scale_deg=1e-3, field_sources=len(source_id), source_id=np.asarray(source_id),
+        bp_rp=np.asarray(source_id, float) / 10, colours=colours, colour_sigma=np.full(colours.shape, sigma),
+        valid=np.ones(len(source_id), bool) if valid is None else np.asarray(valid), reasons=[""] * len(source_id))
+
+
+def test_frames_are_combined_per_star_with_inverse_variance_weights():
+    """Moyenne pondérée par étoile ; étoiles invalides ignorées ; σ combiné 1/√Σw."""
+    first = frame([7, 3], [[0.0, 1.0], [0.5, 0.5]], 0.1)
+    second = frame([3, 7, 9], [[0.8, 0.2], [0.3, 0.0], [9.0, 9.0]], 0.2, valid=[True, True, False])
+    source_id, colours, sigma, bp_rp, counts = combine_frames([first, second])
+    np.testing.assert_array_equal(source_id, [3, 7])
+    np.testing.assert_allclose(colours, [[0.56, 0.44], [0.06, 0.8]])
+    np.testing.assert_allclose(sigma, 1 / np.sqrt(1 / 0.01 + 1 / 0.04))
+    np.testing.assert_allclose(bp_rp, [0.3, 0.7])
+    np.testing.assert_array_equal(counts, [2, 2])
+
+
+def test_series_combines_the_frames_and_writes_one_report(tmp_path, database, raw_light, mocked_services):
+    """Deux poses du même champ : chaque étoile vue deux fois, une seule décision."""
+    path, _ = raw_light
+    copy = shutil.copy(path, tmp_path / "light2.fits")
+    report_path = tmp_path / "out" / "light_series_filterAnalyze.json"
+    report = FilterAnalyzer(database=database, siril=Mock()).post_process_series(
+        [path, Path(copy)], report_path, options())
+    assert report["decision"]["filter"] == "UV/IR Block" and len(report["frames"]) == 2
+    assert report["stars"]["mean_frames_per_star"] == 2.0 and report["airmass"] == 1.1
+    assert report["stars"]["combined"] == report["frames"][0]["stars"]["valid"]
+    assert report["header_consistency"]["consistent"] is True
+    assert json.loads(report_path.read_text()) == report
+    assert sorted(p.name for p in (tmp_path / "out" / "light_series_filterAnalyze_work").iterdir()) == [
+        "light", "light2"]
+
+
+def test_series_refuses_mixed_sensors(tmp_path, database, raw_light, monkeypatch):
+    """Capteurs différents dans une série : erreur explicite avant tout score."""
+    analyzer = FilterAnalyzer(database=database, siril=Mock())
+    frames = iter([frame([1, 2, 3], np.zeros((3, 2)), 0.1), frame([1, 2, 3], np.zeros((3, 2)), 0.1)])
+
+    def measure(path, work_dir, args=None):
+        measured = next(frames)
+        measured.sensor_name = str(path)
+        return measured
+
+    monkeypatch.setattr(analyzer, "measure_frame", measure)
+    with pytest.raises(ValueError, match="Capteurs différents"):
+        analyzer.post_process_series([Path("a.fits"), Path("b.fits")], tmp_path / "s.json", options())
+    with pytest.raises(ValueError, match="vide"):
+        analyzer.post_process_series([], tmp_path / "s.json", options())
+
+
+def test_cli_groups_frames_by_series(tmp_path):
+    """Regroupement par OBJECT, FILTER, EXPTIME et INSTRUME ; rapport nommé d'après la première brute."""
+    paths = []
+    for name, obj, exposure in (("a", "M31", 120), ("b", "M33", 120), ("c", "M31", 120), ("d", "M31", 300)):
+        paths.append(tmp_path / f"{name}.fits")
+        fits.writeto(paths[-1], np.zeros((2, 2), np.float32), fits.Header({"OBJECT": obj, "EXPTIME": exposure}))
+    groups = cli.group_series(paths)
+    assert [[p.name for p in group] for group in groups] == [["a.fits", "c.fits"], ["b.fits"], ["d.fits"]]
+    assert cli.series_report_path(groups[0], None) == tmp_path / "a_series_filterAnalyze.json"
+    assert cli.series_report_path(groups[0], str(tmp_path / "r")) == tmp_path / "r" / "a_series_filterAnalyze.json"

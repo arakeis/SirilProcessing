@@ -221,16 +221,73 @@ def score_filter(
         raise ValueError("Incertitude du modèle négative")
 
     relative = observed_sigma / observed
+    colours = np.log(observed[:, [RED, BLUE]] / observed[:, [GREEN]])
+    colour_sigma = np.sqrt(relative[:, [RED, BLUE]] ** 2 + relative[:, [GREEN]] ** 2)
+    return score_colours(name, colours, colour_sigma, simulated, model_uncertainty)
+
+
+def score_colours(
+    name: str,
+    colours: np.ndarray,
+    colour_sigma: np.ndarray,
+    simulated: np.ndarray,
+    model_uncertainty: float = DEFAULT_MODEL_UNCERTAINTY,
+) -> FilterScore:
+    """Score la compatibilité de couleurs observées ``ln(R/G)`` et ``ln(B/G)``.
+
+    Cœur de :func:`score_filter`, utilisable directement lorsque les couleurs
+    d'une étoile combinent plusieurs poses.
+
+    Parameters
+    ----------
+    name : str
+        Nom du filtre candidat, recopié dans le résultat.
+    colours, colour_sigma : numpy.ndarray
+        Couleurs ``(étoiles, 2)`` ``ln(R/G)`` et ``ln(B/G)`` et leurs
+        écarts-types de mesure, strictement positifs.
+    simulated : numpy.ndarray
+        Flux simulés ``(étoiles, 3)`` par :func:`simulate_rgb` pour ce filtre.
+    model_uncertainty : float
+        Incertitude relative du modèle par flux ; elle ajoute
+        ``2·σ_modèle²`` à la variance de chaque couleur.
+
+    Returns
+    -------
+    FilterScore
+        Score réduit, décalages ajustés et résidus normalisés.
+
+    Raises
+    ------
+    ValueError
+        Formes incohérentes, moins de trois étoiles, valeurs non finies ou
+        incertitudes non positives.
+    """
+    colours = np.asarray(colours, dtype=float)
+    colour_sigma = np.asarray(colour_sigma, dtype=float)
+    simulated = np.asarray(simulated, dtype=float)
+    if colours.shape != colour_sigma.shape or colours.ndim != 2 or colours.shape[1] != 2:
+        raise ValueError("Couleurs et incertitudes : formes (étoiles, 2) attendues")
+    if simulated.shape != (colours.shape[0], 3):
+        raise ValueError("Flux simulés : forme (étoiles, 3) attendue")
+    if colours.shape[0] < 3:
+        raise ValueError("Au moins trois étoiles sont nécessaires")
+    if not np.isfinite(colours).all():
+        raise ValueError("Couleurs observées non finies")
+    if not np.isfinite(simulated).all() or (simulated <= 0).any():
+        raise ValueError("Flux simulés non positifs ou non finis")
+    if not np.isfinite(colour_sigma).all() or (colour_sigma <= 0).any():
+        raise ValueError("Incertitudes de mesure non positives ou non finies")
+    if model_uncertainty < 0:
+        raise ValueError("Incertitude du modèle négative")
+
     residuals, offsets = [], []
-    for channel in (RED, BLUE):
-        difference = np.log(observed[:, channel] / observed[:, GREEN]) - np.log(
-            simulated[:, channel] / simulated[:, GREEN]
-        )
-        sigma = np.sqrt(relative[:, channel] ** 2 + relative[:, GREEN] ** 2 + 2 * model_uncertainty**2)
+    for column, channel in enumerate((RED, BLUE)):
+        difference = colours[:, column] - np.log(simulated[:, channel] / simulated[:, GREEN])
+        sigma = np.sqrt(colour_sigma[:, column] ** 2 + 2 * model_uncertainty**2)
         offset = _huber_location(difference, sigma)
         offsets.append(offset)
         residuals.append((difference - offset) / sigma)
     normalized = np.stack(residuals, axis=1)
     degrees_of_freedom = normalized.size - len(offsets)
     reduced = float(2 * _huber_loss(normalized).sum() / degrees_of_freedom)
-    return FilterScore(name, reduced, (offsets[0], offsets[1]), normalized, observed.shape[0])
+    return FilterScore(name, reduced, (offsets[0], offsets[1]), normalized, colours.shape[0])

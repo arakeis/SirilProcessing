@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from lib.filter_model import blackbody_spectrum, score_filter, simulate_rgb
+from lib.filter_model import BLUE, GREEN, RED, blackbody_spectrum, score_colours, score_filter, simulate_rgb
 from lib.spectral_response import (
     L_EXTREME_BANDS,
     WAVELENGTH_GRID_NM,
@@ -107,6 +107,21 @@ def test_score_absorbs_white_balance_and_follows_noise(spectra, sensor, candidat
     assert score.color_offsets == pytest.approx((np.log(0.7), np.log(1.4)), abs=0.02)
     assert 0.6 < score.reduced_score < 1.5
     assert score.residuals.shape == (spectra.shape[0], 2) and score.star_count == spectra.shape[0]
+
+
+def test_colour_score_matches_the_flux_score(spectra, sensor, candidates):
+    """score_colours sur ln(R/G), ln(B/G) reproduit score_filter sur les flux."""
+    observed, sigma = observe(spectra, candidates["broad"], sensor, noise=0.02)
+    simulated = simulate_rgb(spectra, candidates["yellow"], sensor)
+    colours = np.log(observed[:, [RED, BLUE]] / observed[:, [GREEN]])
+    relative = sigma / observed
+    colour_sigma = np.hypot(relative[:, [RED, BLUE]], relative[:, [GREEN]])
+    expected = score_filter("yellow", observed, sigma, simulated)
+    actual = score_colours("yellow", colours, colour_sigma, simulated)
+    assert actual.reduced_score == pytest.approx(expected.reduced_score)
+    assert actual.color_offsets == pytest.approx(expected.color_offsets)
+    with pytest.raises(ValueError, match="formes"):
+        score_colours("yellow", colours[:, :1], colour_sigma[:, :1], simulated)
 
 
 def test_outlier_star_has_bounded_influence(spectra, sensor, candidates):
