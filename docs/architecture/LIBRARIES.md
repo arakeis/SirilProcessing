@@ -18,6 +18,7 @@
 | [spectral_response.py](../../lib/spectral_response.py) | Fournir les courbes de filtres, de capteurs et d’atmosphère de l’[analyse des filtres](../scripts/filterAnalyze/MODEL.md) |
 | [filter_model.py](../../lib/filter_model.py) | Simuler les flux RGB stellaires et noter la compatibilité de chaque filtre candidat |
 | [plate_solving.py](../../lib/plate_solving.py) | Résoudre l’astrométrie d’une image en mémoire avec Siril `platesolve`, sans modifier ses pixels |
+| [star_photometry.py](../../lib/star_photometry.py) | Mesurer les flux RGB d’étoiles à positions connues par photométrie d’ouverture |
 | [restoration_quality.py](../../lib/restoration_quality.py) | Évaluer les candidats sur des masques indépendants des moteurs et du gradient |
 | [restoration_chains.py](../../lib/restoration_chains.py) | Organiser la comparaison des chaînes complètes, active par défaut |
 | [restoration_summary.py](../../lib/restoration_summary.py) | Présenter les essais, contrôles et motifs de sélection dans les journaux et rapports |

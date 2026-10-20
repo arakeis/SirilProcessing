@@ -17,6 +17,7 @@ suivantes sont en place et testées :
 | [spectral_response.py](../../../lib/spectral_response.py) | Charger les courbes de la base SPCC de Siril, synthétiser les filtres à bande étroite, modéliser l’atmosphère |
 | [filter_model.py](../../../lib/filter_model.py) | Simuler les flux RGB des étoiles et calculer un score de compatibilité par filtre |
 | [plate_solving.py](../../../lib/plate_solving.py) | Résoudre l’astrométrie d’une image avec Siril, sur Gaia DR3 |
+| [star_photometry.py](../../../lib/star_photometry.py) | Mesurer les flux R, G, B des étoiles aux positions du catalogue |
 
 <a id="1-chaine-prevue"></a>
 
@@ -29,9 +30,9 @@ suivantes sont en place et testées :
 5. Score par filtre, décision (filtre ou famille) et cohérence avec `FILTER`.
 
 Les étapes 4 et 5 (modèle et score) sont décrites dans
-[Modèle direct et score](MODEL.md). De l’étape 3, seule l’astrométrie existe
-(section 3 ci-dessous) ; l’interrogation de Gaia et les étapes 1 et 2 restent
-à faire, hormis la lecture des masters XISF.
+[Modèle direct et score](MODEL.md). L’astrométrie (section 3) et la mesure des
+flux (section 4) existent ; restent la calibration et le dématriçage des
+brutes, l’interrogation de Gaia et l’assemblage en script.
 
 <a id="2-prerequis"></a>
 
@@ -67,3 +68,35 @@ focale (1,19″/px) : masters RGB L-eXtreme et L-Pro lus depuis XISF, et une
 brute CFA non dématricée. Le centre de la brute concorde avec celui du master
 à 1″ près, et les étoiles Gaia brillantes projetées par le WCS tombent sur
 les étoiles de l’image.
+
+<a id="4-photometrie"></a>
+
+## 4. Photométrie des étoiles
+
+`measure_rgb(data, positions, aperture_radius=…)` mesure une image RGB
+linéaire aux positions d’un catalogue projeté par le WCS. Le centroïde est
+affiné sur la somme des canaux, puis la même ouverture circulaire mesure R, G
+et B ; le fond est la médiane d’un anneau (par défaut de 1,5 à 2,5 fois le
+rayon). L’incertitude ne contient que le bruit du fond, le gain d’un master
+empilé étant inconnu.
+
+Une étoile est rejetée et son motif est conservé : `edge` (trop près du
+bord), `crowded` (autre astre fourni dans l’anneau), `saturated` (par défaut
+90 % du maximum du canal), `offset` (centroïde à plus d’un demi-rayon de la
+position prédite) ou `faint` (rapport signal sur bruit inférieur à 30 dans un
+canal).
+
+Essai sur les masters RGB, positions Gaia DR3 (G < 15,5) et voisins jusqu’à
+G = 17, avec la couleur `B − R` mesurée comparée à `BP − RP` :
+
+| Image | Étoiles retenues | Décalage médian | Pente | Corrélation |
+|---|---|---|---|---|
+| Master L-eXtreme, rayon 5 px | 1856 | 0,13 px | 0,55 | 0,95 |
+| Master L-Pro, rayon 5 px | 633 | 0,20 px | 0,06 | 0,39 |
+| Brute L-Pro, superpixel RGGB, rayon 3 px | 293 | — | 0,72 | 0,96 |
+
+Le master L-Pro ne présente presque aucune dépendance à la couleur, alors que
+sa brute dématricée selon son `BAYERPAT` (RGGB) se comporte normalement. Le
+master se comporte comme un dématriçage GRBG ou GBRG : un retournement vertical
+d’une image de hauteur paire transforme RGGB en GBRG. Un master déjà dématricé
+ne peut donc pas être utilisé sans contrôle ; la chaîne partira des brutes.
