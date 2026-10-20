@@ -69,7 +69,7 @@ sorte que tous les filtres sont évalués sur le même échantillon.
 
 ## 4. Validation actuelle et limites
 
-Validation **synthétique uniquement** (tests `tests/test_filter_model.py` et
+Validation **synthétique** (tests `tests/test_filter_model.py` et
 essai sur 150 corps noirs de 3500 à 12 000 K, capteur Sony IMX294, masse d’air
 1,1, bruit de 2 % par canal, 47 candidats) :
 
@@ -89,3 +89,37 @@ essai sur 150 corps noirs de 3500 à 12 000 K, capteur Sony IMX294, masse d’ai
   résout pas une bande de 7 nm.
 
 Les résultats sur images réelles sont dans le [manuel](README.md#8-limites).
+
+<a id="5-biais"></a>
+
+## 5. Biais du modèle à l’intérieur d’une famille
+
+Étude du 20 octobre 2026 sur les deux séries réelles du manuel, combinées
+(`--combine`, 100 étoiles chacune) : 4 brutes L-Pro, où le vrai filtre est
+4ᵉ derrière L-QEF, et 5 brutes L-eXtreme, où il est 3ᵉ derrière Askar C1.
+
+- **Signal faible.** La dispersion des couleurs d’une étoile à l’autre est
+  d’environ 3 %, contre 0,4 à 0,8 % d’erreur de mesure. Une fois retirée une
+  pente linéaire en BP − RP, les cinq meilleurs filtres antipollution ont la
+  même dispersion : seule une pente de 1 à 4 % par magnitude de BP − RP les
+  sépare.
+- **Sensibilité aux erreurs plausibles.** Incliner la réponse du capteur de
+  ±7 % entre 400 et 700 nm, ou passer la masse d’air de 1 à 2, change l’ordre
+  de L-QEF, LPS-P2, LPS-P3 et SV260 ; le L-Pro ne passe jamais premier.
+- **Étoiles rouges.** Le L-Pro perd surtout sur les étoiles de BP − RP > 2,5,
+  dont le B/G observé dépasse de 7 % le modèle. Sans elles (BP − RP ≤ 2,0),
+  il passe premier, mais à égalité avec SV260, L-QEF et LPS-P3 (écarts de
+  0,00 à 0,03). Le L-eXtreme passe premier pour BP − RP ≤ 1,5. Les étoiles
+  rouges portent à la fois le pouvoir de séparation et le biais.
+
+| Hypothèse testée | Effet | Verdict |
+|---|---|---|
+| Fuite rouge de 1 à 2 % dans le canal bleu du capteur | Chaque vrai filtre gagne un rang, sur les deux séries, sans passer premier | Contribution partielle |
+| Bandes décalées vers le bleu par le faisceau convergent (2 à 8 nm) | Classement dégradé | Rejetée |
+| Spectres Gaia XP trop lissés | Les bandes d’oxyde de titane des étoiles M (590–630 et 670–710 nm) tombent là où L-Pro et L-QEF diffèrent | Cause la plus probable, non testable sans spectres mieux résolus |
+
+Conclusion : avec ces données et ce modèle, les filtres d’une même famille ne
+sont pas départageables, et le statut `family` est la réponse correcte. Un
+étalonnage de la réponse du capteur sur des brutes de filtre connu (sans
+filtre ou UV/IR seul) pourrait réduire la part instrumentale du biais ; avec
+seulement deux séries, il risquerait de s’ajuster aux données.
