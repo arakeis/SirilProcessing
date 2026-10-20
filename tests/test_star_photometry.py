@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from lib.star_photometry import measure_rgb
+from lib.star_photometry import measure_rgb, select_colour_spread
 
 SHAPE = (3, 120, 160)
 COLOURS = np.array([0.6, 1.0, 1.3])
@@ -74,3 +74,20 @@ def test_invalid_inputs(data, positions, radius, annulus):
     """Image non RGB, positions mal formées ou rayons incohérents : erreur."""
     with pytest.raises(ValueError):
         measure_rgb(data, np.array(positions, float), aperture_radius=radius, annulus=annulus)
+
+
+def test_colour_spread_keeps_both_ends_and_best_snr():
+    """Les rares étoiles bleues et rouges sont gardées ; dans une tranche, les plus nettes."""
+    colour = np.r_[np.full(50, 1.0), -0.2, 3.5, np.nan]
+    snr = np.r_[np.arange(50.0), 40.0, 35.0, 1000.0]
+    chosen = select_colour_spread(colour, snr, max_stars=5, bins=4)
+    assert {50, 51} <= set(chosen) and len(chosen) == 5 and 52 not in chosen
+    assert set(chosen) - {50, 51} == {49, 48, 47}
+    np.testing.assert_array_equal(select_colour_spread(colour, snr, max_stars=100), np.arange(52))
+
+
+@pytest.mark.parametrize("colour, snr, count", [([1.0, 2.0], [1.0], 1), ([1.0], [1.0], 0)])
+def test_colour_spread_rejects_invalid_inputs(colour, snr, count):
+    """Tailles différentes ou nombre d'étoiles nul : erreur."""
+    with pytest.raises(ValueError):
+        select_colour_spread(np.array(colour), np.array(snr), max_stars=count)

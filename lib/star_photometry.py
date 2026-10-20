@@ -38,6 +38,7 @@ DEFAULT_SATURATION_FRACTION = 0.9
 CENTROID_ITERATIONS = 3
 
 REJECTION_REASONS = ("edge", "crowded", "saturated", "offset", "faint")
+DEFAULT_COLOUR_BINS = 10
 
 
 @dataclass(frozen=True)
@@ -183,3 +184,56 @@ def measure_rgb(
         elif (flux[index] < min_snr * sigma[index]).any():
             reason[index] = "faint"
     return RgbPhotometry(refined, flux, sigma, reason == "", reason.astype(str))
+
+
+def select_colour_spread(
+    colour: np.ndarray, snr: np.ndarray, max_stars: int, bins: int = DEFAULT_COLOUR_BINS
+) -> np.ndarray:
+    """Choisit au plus ``max_stars`` étoiles réparties sur toute la gamme de couleurs.
+
+    La gamme des couleurs est découpée en ``bins`` tranches de même largeur.
+    Les tranches sont parcourues tour à tour, en prenant chaque fois la
+    meilleure étoile restante (plus grand rapport signal sur bruit) : les
+    étoiles des extrémités bleue et rouge, rares mais les plus utiles au score,
+    sont ainsi conservées.
+
+    Parameters
+    ----------
+    colour : numpy.ndarray
+        Couleur de catalogue de chaque étoile, par exemple Gaia ``BP − RP`` ;
+        les valeurs non finies sont exclues.
+    snr : numpy.ndarray
+        Rapport signal sur bruit de chaque étoile, par exemple le minimum sur
+        les trois canaux.
+    max_stars : int
+        Nombre maximal d'étoiles retenues, strictement positif.
+    bins : int
+        Nombre de tranches de couleur.
+
+    Returns
+    -------
+    numpy.ndarray
+        Indices des étoiles retenues, en ordre croissant.
+
+    Raises
+    ------
+    ValueError
+        Tableaux de tailles différentes, ``max_stars`` ou ``bins`` non positifs.
+    """
+    colour, snr = np.asarray(colour, dtype=float), np.asarray(snr, dtype=float)
+    if colour.shape != snr.shape or colour.ndim != 1:
+        raise ValueError("Couleurs et rapports signal sur bruit : tableaux 1D de même taille attendus")
+    if max_stars < 1 or bins < 1:
+        raise ValueError("max_stars et bins doivent être strictement positifs")
+    candidates = np.flatnonzero(np.isfinite(colour) & np.isfinite(snr))
+    if candidates.size <= max_stars:
+        return candidates
+    edges = np.linspace(colour[candidates].min(), colour[candidates].max(), bins + 1)
+    slot = np.clip(np.searchsorted(edges, colour[candidates], side="right") - 1, 0, bins - 1)
+    queues = [list(candidates[slot == b][np.argsort(-snr[candidates[slot == b]])]) for b in range(bins)]
+    chosen: list[int] = []
+    while len(chosen) < max_stars:
+        for queue in queues:
+            if queue and len(chosen) < max_stars:
+                chosen.append(int(queue.pop(0)))
+    return np.sort(np.array(chosen))

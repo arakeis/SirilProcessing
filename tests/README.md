@@ -47,7 +47,7 @@ Pour une exécution simple sans ce contrôle supplémentaire :
 |---|---|
 | Métadonnées FITS | `test_fits_info.py` |
 | Lecture des masters XISF PixInsight | `test_xisf_reader.py` |
-| Analyse des filtres : courbes spectrales, modèle direct, score, astrométrie, photométrie et dématriçage | `test_spectral_response.py`, `test_filter_model.py`, `test_plate_solving.py`, `test_star_photometry.py`, `test_cfa_superpixel.py` |
+| Analyse des filtres : courbes spectrales, modèle direct, score, astrométrie, photométrie, dématriçage et Gaia XP | `test_spectral_response.py`, `test_filter_model.py`, `test_plate_solving.py`, `test_star_photometry.py`, `test_cfa_superpixel.py`, `test_gaia_xp.py` |
 | Calibration et reprises | `test_lightprocessor_calibration.py`, `test_force_recalc.py` |
 | Sessions, stacking et orchestration mosaïque | `test_session_pipeline.py` |
 | Sélection et profils stellaires | `test_quality_filter.py`, `test_stellar_quality.py` |

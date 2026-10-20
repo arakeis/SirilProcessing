@@ -19,6 +19,7 @@ suivantes sont en place et testées :
 | [plate_solving.py](../../../lib/plate_solving.py) | Résoudre l’astrométrie d’une image avec Siril, sur Gaia DR3 |
 | [star_photometry.py](../../../lib/star_photometry.py) | Mesurer les flux R, G, B des étoiles aux positions du catalogue |
 | [cfa_superpixel.py](../../../lib/cfa_superpixel.py) | Dématricer une brute CFA en superpixels RGB selon `BAYERPAT` et `ROWORDER` |
+| [gaia_xp.py](../../../lib/gaia_xp.py) | Télécharger et garder en cache les sources et spectres XP de Gaia DR3 |
 
 <a id="1-chaine-prevue"></a>
 
@@ -33,8 +34,8 @@ suivantes sont en place et testées :
 
 Les étapes 4 et 5 (modèle et score) sont décrites dans
 [Modèle direct et score](MODEL.md). L’astrométrie (section 3), la mesure des
-flux (section 4) et le dématriçage des brutes (section 5) existent ; restent
-l’interrogation de Gaia et l’assemblage en script.
+flux (section 4), le dématriçage des brutes (section 5) et l’accès aux
+spectres Gaia (section 6) existent ; reste l’assemblage en script.
 
 <a id="2-prerequis"></a>
 
@@ -47,7 +48,7 @@ l’interrogation de Gaia et l’assemblage en script.
   dossier Flatpak de Siril ; ces deux emplacements n’ont pas été vérifiés.
 - Les dépendances de `requirements.txt` (NumPy, Astropy).
 - Siril 1.4 ou plus récent pour l’astrométrie, et le réseau pour le catalogue
-  Gaia distant.
+  Gaia distant et l’archive Gaia de l’ESA.
 
 <a id="3-astrometrie"></a>
 
@@ -87,6 +88,13 @@ bord), `crowded` (autre astre fourni dans l’anneau), `saturated` (par défaut
 90 % du maximum du canal), `offset` (centroïde à plus d’un demi-rayon de la
 position prédite) ou `faint` (rapport signal sur bruit inférieur à 30 dans un
 canal).
+
+`select_colour_spread(colour, snr, max_stars)` limite ensuite le nombre
+d’étoiles dont il faut télécharger le spectre. La gamme des couleurs Gaia
+`BP − RP` est découpée en dix tranches de même largeur, parcourues tour à tour
+en prenant chaque fois l’étoile restante au meilleur rapport signal sur bruit.
+Le score dépend de l’écart entre étoiles bleues et rouges plus que de leur
+nombre : les rares étoiles des extrémités sont donc gardées en priorité.
 
 Essai sur les masters RGB, positions Gaia DR3 (G < 15,5) et voisins jusqu’à
 G = 17, avec la couleur `B − R` mesurée comparée à `BP − RP` :
@@ -135,3 +143,26 @@ Essai sur chaque brute, astrométrie de l’image superpixel, rayon 3 superpixel
 Les pentes sont stables d’une brute à l’autre, et la pente G − R sépare déjà
 nettement les deux filtres. Le master L-Pro dématricé à tort (section 4) a été
 retiré des données d’essai.
+
+<a id="6-spectres-gaia"></a>
+
+## 6. Sources et spectres Gaia XP
+
+`query_field_sources(ra, dec, rayon, max_g, cache)` interroge le service TAP de
+l’archive Gaia de l’ESA en mode asynchrone, sur la table allégée
+`gaiadr3.gaia_source_lite` : position, magnitude G, `BP − RP` et
+`has_xp_sampled`. `fetch_xp_spectra(identifiants, cache)` télécharge les
+spectres XP échantillonnés (343 points de 336 à 1020 nm, en W·m⁻²·nm⁻¹) et
+`xp_to_grid` les ramène sur la grille du modèle. Tout est gardé dans le
+dossier de cache : une table par requête, un fichier par spectre, y compris
+pour une source sans spectre.
+
+Limites constatées en accès anonyme, le 20 octobre 2026 :
+
+- une requête TAP, même asynchrone, est interrompue après 60 s. Sur la table
+  complète `gaia_source`, un champ de 0,84° jusqu’à G = 17 dépasse parfois
+  cette durée ; la table allégée répond en quelques secondes ;
+- le service DataLink accepte au plus 50 identifiants par requête ; un lot de
+  50 spectres a pris environ 70 s ;
+- les services de l’ESA (et VizieR) ont été indisponibles un moment : les
+  erreurs 5xx et les délais dépassés sont réessayés trois fois avant d’échouer.
