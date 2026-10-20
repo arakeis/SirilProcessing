@@ -77,12 +77,12 @@ python bin/darkLibUpdate.py [OPTIONS]
 
 #### `-m, --siril-mode` (Mode d'exécution)
 ```bash
--m flatpak    # Par défaut
--m native     # Installation native
+-m flatpak    # Par défaut sous Linux
+-m native     # Installation native (par défaut hors Linux)
 -m appimage   # Version AppImage
 ```
 - **Description** : Mode d'exécution de Siril
-- **Défaut** : `flatpak`
+- **Défaut** : `flatpak` sous Linux, `native` sur les autres systèmes
 - **Usage** : Adapte la commande selon l'installation
 
 <a id="validation-et-qualit"></a>

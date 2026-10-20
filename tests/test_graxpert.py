@@ -447,3 +447,14 @@ def test_auto_gpu_inference_failure_does_not_restart_cpu(
     with pytest.raises(RuntimeError, match='inference GPU failure'):
         GraXpertEngine(native_engine).process(source, tmp_path/'candidate.fits')
     assert calls == [True]
+
+
+def test_native_data_root_follows_platform(monkeypatch, tmp_path):
+    """macOS lit Application Support ; ailleurs XDG_DATA_HOME ou ~/.local/share."""
+    from lib import graxpert_models
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
+    monkeypatch.setattr(graxpert_models.sys, "platform", "darwin")
+    assert graxpert_models.native_data_root() == tmp_path / "Library/Application Support/GraXpert"
+    monkeypatch.setattr(graxpert_models.sys, "platform", "linux")
+    assert graxpert_models.native_data_root() == tmp_path / "xdg/GraXpert"

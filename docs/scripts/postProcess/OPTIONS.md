@@ -16,8 +16,8 @@ traitements peuvent donc être remplacés par une configuration sauvegardée.
 |---|---|
 | `--config FICHIER` | Fichier partagé ; défaut `~/.siril_darklib_config.json` |
 | `-S`, `--save-config` | Mémoriser les paramètres rémanents |
-| `-m`, `--siril-mode` | `flatpak` par défaut, ou `native`, `appimage` |
-| `-s`, `--siril-path` | `siril` par défaut ; chemin de l’exécutable en mode native/appimage |
+| `-m`, `--siril-mode` | `flatpak` par défaut sous Linux (`native` ailleurs), ou `native`, `appimage` |
+| `-s`, `--siril-path` | `siril` par défaut sous Linux (`siril-cli` ailleurs, ou celui de Siril.app sous macOS) ; chemin de l’exécutable en mode native/appimage |
 | `-l`, `--log-level` | `INFO` par défaut ; aussi `DEBUG`, `WARNING`, `ERROR`, `CRITICAL` |
 
 `-S` mémorise les paramètres Siril, les activations/désactivations et les réglages

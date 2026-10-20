@@ -13,6 +13,7 @@ import configparser
 import json
 import os
 import re
+import sys
 import time
 from pathlib import Path
 
@@ -21,7 +22,7 @@ from astropy.io import fits
 
 from lib.processor import processor
 from lib.restoration_quality import normalized_planes
-from lib.siril_utils import Siril
+from lib.siril_utils import Siril, default_siril_mode
 from lib.type_defs import JSONReport
 
 
@@ -128,8 +129,10 @@ class StarNetSeparator(processor):
     ) -> tuple[configparser.ConfigParser, Path | None]:
         """Lit les préférences du mode Siril choisi sans les modifier."""
         config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-        if getattr(args, "siril_mode", "flatpak") == "flatpak":
+        if getattr(args, "siril_mode", default_siril_mode()) == "flatpak":
             directory = Path.home() / ".var/app/org.siril.Siril/config/siril"
+        elif sys.platform == "darwin":
+            directory = Path.home() / "Library/Application Support/org.siril.Siril/siril"
         else:
             directory = config_home / "siril"
         for name in ("config.1.4.ini", "config.ini"):

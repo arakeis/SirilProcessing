@@ -122,3 +122,19 @@ def test_invalid_intensities_are_never_silently_clipped(value: float) -> None:
 
     with pytest.raises(ValueError):
         validate_rgb(np.full((3, 8, 8), value))
+
+
+def test_siril_preferences_directory_on_macos(monkeypatch, tmp_path):
+    """Hors Flatpak, macOS lit les préférences dans Application Support."""
+    import argparse
+    from lib import star_separation
+    directory = tmp_path / "Library/Application Support/org.siril.Siril/siril"
+    directory.mkdir(parents=True)
+    (directory / "config.1.4.ini").write_text("[core]\nstarnet_exe=/opt/starnet++\n")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(star_separation.sys, "platform", "darwin")
+    preferences, path = star_separation.StarNetSeparator.preferences(
+        argparse.Namespace(siril_mode="native")
+    )
+    assert path == directory / "config.1.4.ini"
+    assert preferences.get("core", "starnet_exe") == "/opt/starnet++"

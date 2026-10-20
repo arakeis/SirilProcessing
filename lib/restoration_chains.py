@@ -113,11 +113,18 @@ class RestorationChainProcessor(processor):
         cache n’est pas réutilisé entre lancements ou versions différentes.
         """
         from lib.cosmic_clarity.models import DEFAULT_MODEL_DIR
+        from lib.siril_utils import default_siril_path
+        from lib.graxpert_models import (
+            DEFAULT_GRAXPERT_PATH,
+            DEFAULT_MODEL_DIR as GRAXPERT_MODEL_DIR,
+            MANIFEST_PATH as GRAXPERT_MANIFEST,
+            native_data_root,
+        )
 
         files = {}
         for name in (
-            getattr(args, "siril_path", "siril"),
-            getattr(args, "graxpert_path", "GraXpert-linux"),
+            getattr(args, "siril_path", default_siril_path()),
+            getattr(args, "graxpert_path", DEFAULT_GRAXPERT_PATH),
             "flatpak",
         ):
             executable = which(str(name))
@@ -128,17 +135,10 @@ class RestorationChainProcessor(processor):
         ).expanduser()
         for model in sorted(model_dir.glob("*.pth")):
             files[str(model.resolve())] = self._fingerprint(model)
-        graxpert_root = Path(
-            os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local/share"))
-        )
         for model in sorted(
-            (graxpert_root / "GraXpert/denoise-ai-models").glob("*/model.onnx")
+            (native_data_root() / "denoise-ai-models").glob("*/model.onnx")
         ):
             files[str(model.resolve())] = self._fingerprint(model)
-        from lib.graxpert_models import (
-            DEFAULT_MODEL_DIR as GRAXPERT_MODEL_DIR,
-            MANIFEST_PATH as GRAXPERT_MANIFEST,
-        )
 
         files[str(GRAXPERT_MANIFEST)] = self._fingerprint(GRAXPERT_MANIFEST)
 

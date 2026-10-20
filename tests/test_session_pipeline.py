@@ -12,6 +12,7 @@ from typing import Iterator
 import pytest
 
 from lib.postprocessing import PostProcessingProcessor
+from lib.siril_utils import default_siril_mode
 from lib.type_defs import ConfigValue, JSONReport
 
 PipelineFixture = tuple[
@@ -141,7 +142,7 @@ def test_mosaic_uses_only_one_stack_per_input_session(tmp_path, pipeline):
         assert all(path.is_relative_to(tmp_path / 'work/field') for path in files)
     for stack_call in stack.call_args_list:
         assert stack_call.kwargs['work_dir'] == tmp_path / 'work/field'
-    assert args.siril_mode == 'flatpak'
+    assert args.siril_mode == default_siril_mode()
     mosaic.return_value.add_arguments.assert_not_called()
     assert inputs == [tmp_path / 'work/field' / root.name / f'{root.name}_combined.fits' for root in roots]
     assert not set(inputs).intersection(path for files in calibrated.values() for path in files)
