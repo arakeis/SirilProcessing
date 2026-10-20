@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 from shutil import copyfile, which
 import subprocess
+import sys
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import TypedDict
 
@@ -26,6 +27,19 @@ from lib.parameterized_component import ParameterizedComponent
 DEFAULT_MODEL_DIR = Path(__file__).resolve().parents[1] / "tmp/models/graxpert"
 DEFAULT_MODEL_VERSION = "3.0.2"
 MANIFEST_PATH = Path(__file__).with_name("graxpert_models.json")
+DEFAULT_GRAXPERT_PATH = (
+    "/Applications/GraXpert.app/Contents/MacOS/GraXpert"
+    if sys.platform == "darwin"
+    else "GraXpert-linux"
+)
+
+
+def native_data_root() -> Path:
+    """Dossier de données de l’application GraXpert native selon le système."""
+    if sys.platform == "darwin":
+        return Path.home() / "Library/Application Support/GraXpert"
+    data_home = os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local/share"))
+    return Path(data_home) / "GraXpert"
 
 
 class GraXpertModelEntry(TypedDict):
@@ -68,7 +82,7 @@ class GraXpertModels(ParameterizedComponent):
             return
         parser.add_argument(
             "--graxpert-path",
-            default="GraXpert-linux",
+            default=DEFAULT_GRAXPERT_PATH,
             help="Exécutable utilisé uniquement pour télécharger les poids absents",
         )
         parser.add_argument(
@@ -95,11 +109,8 @@ class GraXpertModels(ParameterizedComponent):
 
     def _local_sources(self) -> tuple[Path, ...]:
         """Recherche les caches GraXpert natif et Siril Flatpak sans les modifier."""
-        data_root = Path(
-            os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local/share"))
-        )
         roots = (
-            data_root / "GraXpert",
+            native_data_root(),
             Path.home() / ".var/app/org.siril.Siril/data/GraXpert",
         )
         return tuple(
@@ -158,7 +169,7 @@ class GraXpertModels(ParameterizedComponent):
                 "Import du poids GraXpert %s depuis %s", self.version, local_model
             )
             return self._install(local_model, destination)
-        executable = which(getattr(self.args, "graxpert_path", "GraXpert-linux"))
+        executable = which(getattr(self.args, "graxpert_path", DEFAULT_GRAXPERT_PATH))
         if executable is None:
             raise RuntimeError(
                 "Poids GraXpert absent : le téléchargement officiel exige "

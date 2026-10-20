@@ -49,7 +49,8 @@ les préférences Siril**. Sans chemin explicite, la découverte lit
 `core.starnet_exe` dans `config.1.4.ini`, puis `config.ini`, du mode choisi :
 
 - Flatpak : `~/.var/app/org.siril.Siril/config/siril/` ;
-- natif/AppImage : `$XDG_CONFIG_HOME/siril/`, ou `~/.config/siril/`.
+- natif/AppImage : `$XDG_CONFIG_HOME/siril/`, ou `~/.config/siril/` ;
+- macOS (hors Flatpak) : `~/Library/Application Support/org.siril.Siril/siril/`.
 
 Avec AutoGHS actif et `-S/--save-config`, le point d'entrée résout aussi le chemin
 découvert et le sauvegarde sous la clé **`starnet_path`**, en chemin absolu. Le

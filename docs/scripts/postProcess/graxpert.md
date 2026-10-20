@@ -64,7 +64,8 @@ version inconnue du manifeste est refusée plutôt qu’interprétée arbitraire
 
 1. Vérifie le cache du projet par taille et SHA256.
 2. S’il manque ou est corrompu, recherche le poids dans les caches GraXpert natif
-   et Siril Flatpak. Un fichier conforme est copié sans modifier sa source.
+   (`$XDG_DATA_HOME/GraXpert`, ou `~/Library/Application Support/GraXpert` sous
+   macOS) et Siril Flatpak. Un fichier conforme est copié sans modifier sa source.
 3. Sinon, invoque le mécanisme officiel GraXpert sur un FITS synthétique jetable,
    avec version explicite et CPU. Les répertoires XDG de données, configuration
    et cache sont temporaires ; les préférences utilisateur restent intactes.
@@ -90,7 +91,7 @@ explicite. Dès que les poids sont installés, l’inférence fonctionne sans Gr
 | `--enable-graxpert` / `--no-enable-graxpert` | automatique si poids locaux valides | Forcer l’activation / désactiver le moteur |
 | `--graxpert-model-dir` | `tmp/models/graxpert` dans le projet | Cache de poids |
 | `--graxpert-model-version` | `3.0.2` | Version épinglée et prise en charge |
-| `--graxpert-path` | `GraXpert-linux` | Exécutable utilisé seulement pour l’acquisition |
+| `--graxpert-path` | `GraXpert-linux` (macOS : `/Applications/GraXpert.app/Contents/MacOS/GraXpert`) | Exécutable utilisé seulement pour l’acquisition |
 | `--graxpert-strength` | 0,5 | Mélange relatif, de 0 à 1 |
 | `--graxpert-batch-size` | 1 | Nombre de tuiles par appel ONNX, de 1 à 32 |
 | `--graxpert-gpu` / `--no-graxpert-gpu` | `null` (hérite du choix général) | Surcharge GPU/CPU explicite |

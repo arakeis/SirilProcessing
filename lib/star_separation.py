@@ -13,6 +13,7 @@ import configparser
 import json
 import os
 import re
+import sys
 import time
 from pathlib import Path
 
@@ -130,6 +131,8 @@ class StarNetSeparator(processor):
         config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
         if getattr(args, "siril_mode", "flatpak") == "flatpak":
             directory = Path.home() / ".var/app/org.siril.Siril/config/siril"
+        elif sys.platform == "darwin":
+            directory = Path.home() / "Library/Application Support/org.siril.Siril/siril"
         else:
             directory = config_home / "siril"
         for name in ("config.1.4.ini", "config.ini"):
