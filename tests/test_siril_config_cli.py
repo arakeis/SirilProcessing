@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 from astropy.io import fits
 
 from lib.config import Config
@@ -101,3 +102,27 @@ def test_save_failure_is_reported(tmp_path):
                             env={**os.environ, 'VENV_DIR': sys.prefix}, capture_output=True, text=True)
     assert result.returncode == 1
     assert 'Erreur lors de la sauvegarde' in result.stderr
+
+
+@pytest.mark.parametrize('platform, mode, path', [
+    ('linux', 'flatpak', 'siril'),
+    ('darwin', 'native', 'siril-cli'),
+    ('win32', 'native', 'siril-cli'),
+])
+def test_default_siril_mode_and_path_follow_platform(monkeypatch, platform, mode, path):
+    """Flatpak reste le défaut Linux ; ailleurs, siril-cli natif."""
+    from lib import siril_utils
+    monkeypatch.setattr(siril_utils.sys, 'platform', platform)
+    monkeypatch.setattr(siril_utils, 'MACOS_SIRIL_CLI', '/absent/siril-cli')
+    assert siril_utils.default_siril_mode() == mode
+    assert siril_utils.default_siril_path() == path
+
+
+def test_default_siril_path_uses_macos_bundle_when_present(monkeypatch, tmp_path):
+    """Sous macOS, le siril-cli de Siril.app est préféré s'il existe."""
+    from lib import siril_utils
+    bundle = tmp_path / 'siril-cli'
+    bundle.touch()
+    monkeypatch.setattr(siril_utils.sys, 'platform', 'darwin')
+    monkeypatch.setattr(siril_utils, 'MACOS_SIRIL_CLI', str(bundle))
+    assert siril_utils.default_siril_path() == str(bundle)

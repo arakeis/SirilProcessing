@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from lib.config import Config
+from lib.siril_utils import default_siril_mode
 
 
 def test_singleton_preserves_unsaved_changes(tmp_path):
@@ -130,7 +131,7 @@ def test_invalid_json_root_falls_back_to_defaults(tmp_path, invalid):
     path = tmp_path / 'settings.json'
     path.write_text(json.dumps(invalid))
     config = Config(path)
-    assert config.get('siril_mode') == 'flatpak'
+    assert config.get('siril_mode') == default_siril_mode()
 
 
 def test_legacy_set_from_args_normalizes_paths(tmp_path, monkeypatch):

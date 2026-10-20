@@ -19,6 +19,7 @@ from lib.logging_utils import (
 )
 from lib.postprocess import _PostProcessorSequence
 from lib.processor import processor
+from lib.siril_utils import default_siril_mode, default_siril_path
 from lib.quality_preview import QualityMaskPreview
 from lib.star_separation import StarNetSeparator
 from lib.type_defs import JSONReport
@@ -118,8 +119,9 @@ class PostProcessingProcessor(processor):
             "Configuration: %s", getattr(args, "config", "paramètres liés"),
         )
         logging.info(
-            "Siril: mode=%s, path=%s", getattr(args, "siril_mode", "flatpak"),
-            getattr(args, "siril_path", "siril"),
+            "Siril: mode=%s, path=%s",
+            getattr(args, "siril_mode", default_siril_mode()),
+            getattr(args, "siril_path", default_siril_path()),
         )
         logging.info(
             "Backend: %s",

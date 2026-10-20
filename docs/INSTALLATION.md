@@ -89,8 +89,8 @@ Les options sont communes à lightProcess et postProcess :
 
 | Installation Siril | Options de sélection | Exécutable lancé |
 |---|---|---|
-| Flatpak, mode par défaut | `--siril-mode flatpak` | `flatpak run --command=siril-cli org.siril.Siril` |
-| Installation native | `--siril-mode native --siril-path /chemin/siril-cli` | Le programme indiqué par `--siril-path` |
+| Flatpak, mode par défaut sous Linux | `--siril-mode flatpak` | `flatpak run --command=siril-cli org.siril.Siril` |
+| Installation native, mode par défaut hors Linux | `--siril-mode native --siril-path /chemin/siril-cli` | Le programme indiqué par `--siril-path` ; sans `--siril-path`, `siril-cli` du `PATH`, ou celui de `/Applications/Siril.app` sous macOS |
 | AppImage | `--siril-mode appimage --siril-path /chemin/Siril.AppImage` | L’AppImage indiquée, qui doit être exécutable |
 
 Pour vérifier la présence et la version de l’application Flatpak :

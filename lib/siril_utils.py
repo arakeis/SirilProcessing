@@ -17,11 +17,28 @@ import os
 import shutil
 import signal
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
 from lib.cpu_config import CpuConfig
 from lib.parameterized_component import ParameterizedComponent
+
+MACOS_SIRIL_CLI = "/Applications/Siril.app/Contents/MacOS/siril-cli"
+
+
+def default_siril_mode() -> str:
+    """Flatpak sous Linux, exécutable natif sur les autres systèmes."""
+    return "flatpak" if sys.platform.startswith("linux") else "native"
+
+
+def default_siril_path() -> str:
+    """Exécutable Siril par défaut : `siril` sous Linux, `siril-cli` ailleurs."""
+    if sys.platform.startswith("linux"):
+        return "siril"
+    if sys.platform == "darwin" and Path(MACOS_SIRIL_CLI).is_file():
+        return MACOS_SIRIL_CLI
+    return "siril-cli"
 
 
 class Siril(ParameterizedComponent):
@@ -30,8 +47,8 @@ class Siril(ParameterizedComponent):
     """
 
     CONFIG_DEFAULTS = {
-        "siril_path": "siril",
-        "siril_mode": "flatpak",
+        "siril_path": default_siril_path(),
+        "siril_mode": default_siril_mode(),
     }
 
     @classmethod
@@ -69,8 +86,8 @@ class Siril(ParameterizedComponent):
         )
 
     # Attributs de classe pour la configuration globale par défaut
-    _default_siril_path = "siril"
-    _default_siril_mode = "flatpak"
+    _default_siril_path = default_siril_path()
+    _default_siril_mode = default_siril_mode()
 
     def __init__(
         self, siril_path: str | None = None, siril_mode: str | None = None
@@ -132,9 +149,9 @@ class Siril(ParameterizedComponent):
         if not temp_instance._validated:
             # Restaurer les anciennes valeurs en cas d'échec
             if siril_path is not None:
-                cls._default_siril_path = "siril"
+                cls._default_siril_path = default_siril_path()
             if siril_mode is not None:
-                cls._default_siril_mode = "flatpak"
+                cls._default_siril_mode = default_siril_mode()
             raise ValueError(
                 f"Configuration Siril invalide: path='{cls._default_siril_path}', mode='{cls._default_siril_mode}'"
             )
