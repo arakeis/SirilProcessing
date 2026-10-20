@@ -23,7 +23,7 @@ class DocumentationSiteTests(unittest.TestCase):
     def test_navigation_groups_scripts_and_does_not_repeat_option_chapters(self) -> None:
         """Site et exports partagent l’ordre, les groupes et les liens vers les options."""
         with TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             sources = [Path(path) for path in (
                 "AGENTS.md", "README.md", "docs/README.md",
                 "docs/sample/OPTIONS.md", "docs/sample/README.md",
@@ -59,7 +59,7 @@ class DocumentationSiteTests(unittest.TestCase):
     def test_navigation_rejects_missing_or_external_source(self) -> None:
         """Un lien hors des sources ne disparaît pas silencieusement des exports."""
         with TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             (root / "docs").mkdir()
             (root / "README.md").write_text("# Projet\n")
             for target, message in (
@@ -79,7 +79,7 @@ class DocumentationSiteTests(unittest.TestCase):
     def test_navigation_without_configuration_keeps_source_order(self) -> None:
         """Le constructeur reste utilisable sur un petit arbre sans configuration."""
         with TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             sources = [Path("second.md"), Path("first.md")]
             for path in sources:
                 (root / path).write_text("# " + path.stem + "\n")
@@ -122,7 +122,7 @@ class DocumentationSiteTests(unittest.TestCase):
     def test_metadata_links_survive_github_pages_archiving(self) -> None:
         """Les références .github ne dépendent pas d’un dossier exclu par Pages."""
         with TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             (root / ".github").mkdir()
             (root / ".github/instructions.md").write_text("# Consignes\n")
             (root / ".copilot").mkdir()
@@ -144,7 +144,7 @@ class DocumentationSiteTests(unittest.TestCase):
     def test_chapter_links_and_duplicate_ids_are_namespaced(self) -> None:
         """Les mêmes titres dans deux chapitres gardent des ancres distinctes."""
         with TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             first, second = root / "README.md", root / "docs/README.md"
             chapters = {first: "chapter-0", second: "chapter-1"}
             parser = builder.SingleFileLinks(root, first, chapters)
@@ -160,7 +160,7 @@ class DocumentationSiteTests(unittest.TestCase):
     def test_sources_are_embedded_but_models_and_external_files_are_not(self) -> None:
         """Le monofichier inclut ses références textuelles et exclut les poids."""
         with TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             document = root / "README.md"
             source = root / "example.py"
             source.write_text("VALUE = 1\n")
@@ -180,7 +180,7 @@ class DocumentationSiteTests(unittest.TestCase):
     def test_output_cannot_replace_sources_or_build_cache(self) -> None:
         """Une configuration dangereuse est refusée avant toute suppression."""
         with TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             for relative in (".", "docs", "docs/generated", "lib", "tmp/documentation"):
                 with self.subTest(output=relative):
                     with self.assertRaises(ValueError):
@@ -192,7 +192,7 @@ class DocumentationSiteTests(unittest.TestCase):
     def test_generated_directories_do_not_become_documentation_sources(self) -> None:
         """Les caches et sites précédents ne polluent pas la génération suivante."""
         with TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             for relative in (
                 "README.md",
                 "docs/guide.md",

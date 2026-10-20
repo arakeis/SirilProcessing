@@ -1,3 +1,5 @@
+import shutil
+
 import pytest
 
 from lib.cpu_config import CpuConfig
@@ -35,7 +37,7 @@ def test_invalid_limit(limit):
 def test_existing_siril_instance_uses_global_limit(tmp_path, monkeypatch, header):
     monkeypatch.setattr(Siril, '_validate_configuration', lambda self: True)
     monkeypatch.setattr('lib.cpu_config.os.cpu_count', lambda: 16)
-    runner = Siril(siril_path='/bin/true', siril_mode='native')
+    runner = Siril(siril_path=shutil.which('true'), siril_mode='native')
     runner._validated = True
     for limit in (8, 3):
         CpuConfig.configure(limit)
